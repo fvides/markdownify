@@ -3,12 +3,26 @@
    [reagent.core :as reagent]
    ["showdown" :as showdown]))
 
-(defonce markdown (reagent/atom ""))
-
 (defonce showdown-converter (showdown/Converter.))
 
 (defn md->html [md]
   (.makeHtml showdown-converter md))
+
+(defn html->md [html]
+  (.makeMarkdown showdown-converter html))
+
+(defonce text-state (reagent/atom {:format :md
+                                   :value  ""}))
+
+(defn ->md [{:keys [format value]}]
+  (case format
+    :md value
+    :html (html->md value)))
+
+(defn ->html [{:keys [format value]}]
+  (case format
+    :md (md->html value)
+    :html value))
 
 (defn copy-to-clipboard [s]
   (let [el       (.createElement js/document "textarea")
@@ -35,33 +49,44 @@
      {:style {:flex "1"}}
      [:h2 "Markdown"]
      [:textarea
-      {:on-change #(reset! markdown (-> % .-target .-value))
-       :value @markdown
+      {:on-change (fn [e]
+                    (reset! text-state {:format :md
+                                        :value (-> e .-target .-value)}))
+       :value (->md @text-state)
        :style {:resize "none"
                :height "500px"
                :width "100%"}}]
      [:button
-      {:on-click #(copy-to-clipboard @markdown)
+      {:on-click #(copy-to-clipboard (->md @text-state))
        :style {:background-color :green
                :padding "1em"
                :color :white
                :border-radius 10}}
       "Copy Markdown"]]
     [:div
-     {:style {:flex "1"
-              :padding-left "2em"}}
-     [:h2 "HTML Preview"]
-     [:div {:style {:height "500px"}
-            :dangerouslySetInnerHTML {:__html (md->html @markdown)}}]
+     {:style {:flex "1"}}
+     [:h2 "HTML"]
+     [:textarea
+      {:on-change (fn [e]
+                    (reset! text-state {:format :html
+                                        :value (-> e .-target .-value)}))
+       :value (->html @text-state)
+       :style {:resize "none"
+               :height "500px"
+               :width "100%"}}]
      [:button
-      {:on-click #(copy-to-clipboard (md->html @markdown))
+      {:on-click #(copy-to-clipboard (->html @text-state))
        :style {:background-color :green
                :padding "1em"
                :color :white
                :border-radius 10}}
-      "Copy HTML"]]]])
-
-
+      "Copy HTML"]]
+    [:div
+     {:style {:flex "1"
+              :padding-left "2em"}}
+     [:h2 "HTML Preview"]
+     [:div {:style {:height "500px"}
+            :dangerouslySetInnerHTML {:__html (md->html (:value @text-state))}}]]]])
 
 
 
