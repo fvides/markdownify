@@ -3,6 +3,14 @@
    [reagent.core :as reagent]
    ["showdown" :as showdown]))
 
+(defonce flash-message (reagent/atom nil))
+
+(defn flash
+  ([text]
+   (flash text 3000))
+  ([text ms]
+   (reset! flash-message text)))
+
 (defonce showdown-converter (showdown/Converter.))
 
 (defn md->html [md]
@@ -41,7 +49,14 @@
       (-> js/document .getSelection (.addRange selected)))))
 
 (defn app []
-  [:div
+  [:div {:style {:position :relative}}
+   [:div
+    {:style {:position :absolute
+             :margin :auto
+             :left 0
+             :right 0
+             :text-align :center}}
+    @flash-message]
    [:h1 "Markdownify"]
    [:div
     {:style {:display :flex}}
@@ -57,7 +72,9 @@
                :height "500px"
                :width "100%"}}]
      [:button
-      {:on-click #(copy-to-clipboard (->md @text-state))
+      {:on-click (fn []
+                   (copy-to-clipboard (->md @text-state))
+                   (flash "Markdown copied to clipboard"))
        :style {:background-color :green
                :padding "1em"
                :color :white
@@ -75,7 +92,9 @@
                :height "500px"
                :width "100%"}}]
      [:button
-      {:on-click #(copy-to-clipboard (->html @text-state))
+      {:on-click (fn []
+                   (copy-to-clipboard (->html @text-state))
+                   (flash "HTML copied to clipboard"))
        :style {:background-color :green
                :padding "1em"
                :color :white
